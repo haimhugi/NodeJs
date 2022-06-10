@@ -2,11 +2,12 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const HttpError = require('./models/http-error');
 const usersRoutes = require('./routes/users-routes');
+const mongoose = require('mongoose');
 
 const app = express();
 app.use(bodyParser.json());
 
-app.use('/api/users', usersRoutes); // => /api/users...
+app.use('/api/users', usersRoutes);
 
 app.use((req, res, next) => {
     const error = new HttpError('Could not find this route.', 404);
@@ -20,4 +21,11 @@ app.use((error, req, res, next) => {
     res.json({ message: error.message || 'An unknown error occurred!' });
 });
 
-app.listen(5000);
+
+mongoose.connect('mongodb+srv://HaimHugi:pass1234@cluster0.lv8gd.mongodb.net/?retryWrites=true&w=majority')
+    .then(() => {
+        app.listen(5000);
+    })
+    .catch(err => {
+        console.log(err);
+    });

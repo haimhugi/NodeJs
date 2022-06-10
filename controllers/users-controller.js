@@ -1,69 +1,63 @@
-const uuid = require('uuid/v4');
 const { validationResult } = require('express-validator');
 const HttpError = require('../models/http-error');
+const User = require('../models/user');
 
-
-let USERS = [
-    {
-        Name: 'Mia Tremblay',
-        Email: 'mia.tremblay@example.com',
-        ID: '637011271',
-        Phone: '+972506407314',
-        IP: '29.53.136.109'
-    },
-    {
-        Name: 'Naja Larsen',
-        Email: 'naja.larsen@example.com',
-        ID: '381393602',
-        Phone: '+972544864314',
-        IP: '192.219.255.118'
-    },
-    {
-        Name: 'Mia Davies',
-        Email: 'mia.davies@example.com',
-        ID: '305970410',
-        Phone: '+972549348293',
-        IP: '254.12.52.38'
-    },
-    {
-        Name: 'Anthony Fleming',
-        Email: 'anthony.fleming@example.com',
-        ID: '635922081',
-        Phone: '+972527310869',
-        IP: '146.229.76.244'
-    },
-]
-
-const getUsers = (req, res, next) => {
-    res.json({ users: USERS });
+const getUsers = async (req, res, next) => {
+    let users;
+    try {
+        users = await User.find({}, '-password');
+    } catch (err) {
+        const error = new HttpError(
+            'Fetching users failed, please try again later.',
+            500
+        );
+        return next(error);
+    }
+    res.json({ users: users.map(user => user.toObject({ getters: true })) });
 };
 
-const createUser = (req, res, next) => {
+const createUser = async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         throw new HttpError('Invalid inputs passed , please check your data', 422);
     }
     const { Name, Email, ID, Phone, IP } = req.body;
 
-    //backend validation
-
-    const createdUser = {
+    const createdUser = new User({
         Name,
         Email,
-        ID: uuid(),
+        ID,
         Phone,
         IP,
-    };
+    });
 
-    USERS.push(createdUser);
+    try {
+        await createdUser.save();
+    } catch (err) {
+        const error = new HttpError('Creating user failed,please try again', 500);
+        return next(error);
+    }
 
-    res.status(201).json({ place: createdUser });
+    res.status(201).json({ user: createdUser });
 };
 
-const deleteUser = (req, res, next) => {
+const deleteUser = async (req, res, next) => {
     const userId = req.params.uid;
-    console.log(userId);
-    USERS = USERS.filter(u => u.ID !== userId);
+    let user;
+    try {
+        user = await User.findById(userId);
+    } catch (err) {
+        const error = new HttpError('Deleting user failed1,please try again', 500);
+        return next(error);
+    }
+
+    try {
+        await user.remove();
+    } catch (err) {
+        const error = new HttpError('Deleting user failed,please try again', 500);
+        return next(error);
+    }
+
     res.status(200).json({ message: 'Deleted user.' });
 };
 
