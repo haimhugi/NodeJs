@@ -1,4 +1,6 @@
 const uuid = require('uuid/v4');
+const { validationResult } = require('express-validator');
+const HttpError = require('../models/http-error');
 
 
 let USERS = [
@@ -37,6 +39,10 @@ const getUsers = (req, res, next) => {
 };
 
 const createUser = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        throw new HttpError('Invalid inputs passed , please check your data', 422);
+    }
     const { Name, Email, ID, Phone, IP } = req.body;
 
     //backend validation
@@ -49,7 +55,7 @@ const createUser = (req, res, next) => {
         IP,
     };
 
-    USERS.push(createdUser); //unshift(createdPlace)
+    USERS.push(createdUser);
 
     res.status(201).json({ place: createdUser });
 };
